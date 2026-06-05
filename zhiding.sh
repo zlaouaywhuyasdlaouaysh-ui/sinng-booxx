@@ -104,7 +104,7 @@ load() {
 # wget add --no-check-certificate
 _wget() {
     [[ $proxy ]] && export https_proxy=$proxy
-    wget --no-check-certificate $*
+    wget --no-check-certificate --timeout=15 --tries=3 $*
 }
 
 # print a mesage
@@ -200,8 +200,15 @@ download() {
 
 # get server ip
 get_ip() {
-    export "$(_wget -4 -qO- https://one.one.one.one/cdn-cgi/trace | grep ip=)" &>/dev/null
-    [[ -z $ip ]] && export "$(_wget -6 -qO- https://one.one.one.one/cdn-cgi/trace | grep ip=)" &>/dev/null
+    [[ $ip ]] && return
+    local ip_tmp
+
+    ip_tmp=$(_wget -4 -qO- https://one.one.one.one/cdn-cgi/trace 2>/dev/null | grep '^ip=' | cut -d= -f2)
+    [[ -z $ip_tmp ]] && ip_tmp=$(_wget -4 -qO- https://api.ipify.org 2>/dev/null)
+    [[ -z $ip_tmp ]] && ip_tmp=$(_wget -4 -qO- https://ifconfig.me/ip 2>/dev/null)
+    [[ -z $ip_tmp ]] && ip_tmp=$(_wget -6 -qO- https://one.one.one.one/cdn-cgi/trace 2>/dev/null | grep '^ip=' | cut -d= -f2)
+
+    [[ $ip_tmp ]] && export ip=$ip_tmp
 }
 
 # check background tasks status
